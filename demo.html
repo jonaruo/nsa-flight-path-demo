@@ -43,7 +43,7 @@
             viewer.clock.multiplier = 10; // fast-forward
             viewer.timeline.zoomTo(start, stop);
 
-            // Plane entity with glowing path
+            // Plane entity
             const planePos = new Cesium.SampledPositionProperty();
             data.plane.forEach(p => {
             planePos.addSample(Cesium.JulianDate.fromIso8601(p.time), Cesium.Cartesian3.fromDegrees(p.lon, p.lat, p.alt));
@@ -52,7 +52,7 @@
             name: "Carrier Plane",
             position: planePos,
             orientation: new Cesium.VelocityOrientationProperty(planePos),
-            model: { uri: "models/f_16_c.glb", scale: 0.2 },
+            model: { uri: "models/DC8.glb", scale: 100 },
             path: {
                 resolution: 1,
                 material: new Cesium.PolylineGlowMaterialProperty({
@@ -65,7 +65,7 @@
             description: "Carrier plane taking off from Indonesia."
             });
 
-            // Rocket entity with glowing path
+            // Rocket entity
             const rocketPos = new Cesium.SampledPositionProperty();
             data.rocket.forEach(r => {
             rocketPos.addSample(Cesium.JulianDate.fromIso8601(r.time), Cesium.Cartesian3.fromDegrees(r.lon, r.lat, r.alt));
@@ -74,7 +74,7 @@
             name: "Rocket",
             position: rocketPos,
             orientation: new Cesium.VelocityOrientationProperty(rocketPos),
-            model: { uri: "models/rocket.glb", scale: 10 },
+            model: { uri: "models/rocket.glb", scale: 1 },
             path: {
                 resolution: 1,
                 material: new Cesium.PolylineGlowMaterialProperty({
@@ -87,7 +87,7 @@
             description: "Rocket released from the carrier plane."
             });
 
-            // Payload entity with glowing orbit path
+            // Payload entity
             const payloadPos = new Cesium.SampledPositionProperty();
             data.payload.track.forEach(p => {
             payloadPos.addSample(Cesium.JulianDate.fromIso8601(p.time), Cesium.Cartesian3.fromDegrees(p.lon, p.lat, p.alt));
@@ -104,7 +104,7 @@
                 }),
                 width: 10,
                 leadTime: 0,
-                trailTime: 60,
+                trailTime: 200,
             },
             description: `Orbit: 500km circular, Inclination: ${data.payload.orbit.inclination}°`
             });

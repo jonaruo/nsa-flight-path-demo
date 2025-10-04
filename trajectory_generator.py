@@ -3,14 +3,15 @@ import math
 from datetime import datetime, timedelta, timezone
 
 #Starting Plane Variables
-STARTING_AIRPORT_COORDS = {"lat": 1.12103,"lon": 104.11900} #starting at Hang Nadim Airport, possible addition of other Coords for other starting airports
+STARTING_AIRPORT_COORDS = {"lat": -1.1900, "lon": 136.1080} #starting at Frans Kaisiepo Airport in Biak
 ROCKET_RELEASE_ALTITUDE = 10000 #written in meters, possible to make 3 optional altitudes depending on choosen air-launch platforms
 FLIGHT_DURATION_MINUTES = 5
 RETURN_FLIGHT_DURATION_MINUTES = 5
+TURN_WIDTH = 0.2 # Determines the width of the turn in degrees latitude
 
 #Parmeters for Rocket
-ROCKET_LAUNCH_ANGLE = math.radians(25)
-ROCKET_INITIAL_VELOCITY = 5000 #in m/s
+ROCKET_LAUNCH_ANGLE = math.radians(30)
+ROCKET_INITIAL_VELOCITY = 4000 #in m/s
 G = 9.81 #Gravity
 ROCKET_ALTITUDE_CEILING = 200000 #In meters
 
@@ -39,11 +40,21 @@ release_time = t0 + timedelta(minutes=FLIGHT_DURATION_MINUTES)
 
 for i in range(1, RETURN_FLIGHT_DURATION_MINUTES + 1):
     point_time = release_time + timedelta(minutes=i)
+    fraction = i / RETURN_FLIGHT_DURATION_MINUTES
+    
+    # Linear interpolation for longitude and altitude
+    lon = release_point["lon"] - fraction * (release_point["lon"] - STARTING_AIRPORT_COORDS["lon"])
+    alt = release_point["alt"] - fraction * release_point["alt"]
+
+    # Sinusoidal interpolation for latitude to create a curve
+    lat_offset = TURN_WIDTH * math.sin(fraction * math.pi)
+    lat = STARTING_AIRPORT_COORDS["lat"] - lat_offset
+
     plane_points.append({
         "time": point_time.isoformat(),
-        "lat": release_point["lat"] - i * (release_point["lat"] - STARTING_AIRPORT_COORDS["lat"]) / RETURN_FLIGHT_DURATION_MINUTES,
-        "lon": release_point["lon"] - i * (release_point["lon"] - STARTING_AIRPORT_COORDS["lon"]) / RETURN_FLIGHT_DURATION_MINUTES,
-        "alt": release_point["alt"] - i * (release_point["alt"] / RETURN_FLIGHT_DURATION_MINUTES)
+        "lat": lat,
+        "lon": lon,
+        "alt": alt
     })
 
 #Rocket Trajectory
@@ -53,12 +64,12 @@ payload_released = False
 payload_start_time = None
 payload_insertion_coords = None
 
-rocket_duration_sec = 1200
+rocket_duration_sec = 2000
 
 for t in range(0, rocket_duration_sec + 1, 10):
     time = release_time + timedelta(seconds=t)
-    x = ROCKET_INITIAL_VELOCITY * math.cos(ROCKET_LAUNCH_ANGLE)
-    y = ROCKET_INITIAL_VELOCITY * math.sin(ROCKET_LAUNCH_ANGLE) - 0.5 * G * t ** 2
+    x = ROCKET_INITIAL_VELOCITY * t * math.cos(ROCKET_LAUNCH_ANGLE)
+    y = ROCKET_INITIAL_VELOCITY * t * math.sin(ROCKET_LAUNCH_ANGLE) - 0.5 * G * t**2
     alt = release_point["alt"] + y
 
     #stop when rocket splahes down
@@ -79,7 +90,7 @@ for t in range(0, rocket_duration_sec + 1, 10):
     })
 
 #Payload Trigger Release
-if not payload_released and alt >= ROCKET_ALTITUDE_CEILING:
+    if not payload_released and alt >= ROCKET_ALTITUDE_CEILING:
         payload_released = True
         payload_start_time = time
         payload_insertion_coords = (rocket_lat, rocket_lon)
@@ -92,7 +103,6 @@ if not payload_released and alt >= ROCKET_ALTITUDE_CEILING:
             t_payload = payload_start_time + timedelta(seconds=tt)
             theta = 2 * math.pi * (tt / orbit_period_sec)
 
-            r = EARTH_RADIUS + ORBIT_ALTITUDE
             lon = (payload_insertion_coords[1] + math.degrees(theta)) % 360
 
             payload_points.append({
