@@ -10,5 +10,133 @@
         </style>
     </head>
     <body>
+        <div id="cesiumContainer"></div>
+        <div style="position: absolute; top: 10px; left: 10px; z-index: 1;">
+            <button onclick="viewer.trackedEntity = plane;">Track Plane</button>
+            <button onclick="viewer.trackedEntity = rocket;">Track Rocket</button>
+            <button onclick="viewer.trackedEntity = payload;">Track Payload</button>
+            <button onclick="viewer.zoomTo(viewer.entities);">Zoom to All</button>
+        </div>
+        <script>
+        // Setup Cesium viewer
+        Cesium.Ion.defaultAccessToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJjY2ZiMGU1Ny03YzU3LTRkZmEtYTRlMC0xN2FmY2JkMjExNGIiLCJpZCI6MzQ2MzExLCJpYXQiOjE3NTkzMjQyODF9.UzpcscNpBpN0nlzyzmV2B2g3ahm1w0STY7vEFgGXPCU";
+        const viewer = new Cesium.Viewer("cesiumContainer", {
+        timeline: true,
+        animation: true,
+        });
 
-    </body>
+        let plane, rocket, payload;
+
+        // Load trajectory JSON
+        fetch("trajectory.json")
+        .then(res => {
+            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+            return res.json();
+        })
+        .then(data => {
+            const start = Cesium.JulianDate.fromIso8601(data.plane[0].time);
+            const stop = Cesium.JulianDate.fromIso8601(data.rocket[data.rocket.length - 1].time);
+
+            viewer.clock.startTime = start.clone();
+            viewer.clock.stopTime = stop.clone();
+            viewer.clock.currentTime = start.clone();
+            viewer.clock.multiplier = 10; // fast-forward
+            viewer.timeline.zoomTo(start, stop);
+
+            // Plane entity with glowing path
+            const planePos = new Cesium.SampledPositionProperty();
+            data.plane.forEach(p => {
+            planePos.addSample(Cesium.JulianDate.fromIso8601(p.time), Cesium.Cartesian3.fromDegrees(p.lon, p.lat, p.alt));
+            });
+            plane = viewer.entities.add({
+            name: "Carrier Plane",
+            position: planePos,
+            orientation: new Cesium.VelocityOrientationProperty(planePos),
+            model: { uri: "models/f_16_c.glb", scale: 0.2 },
+            path: {
+                resolution: 1,
+                material: new Cesium.PolylineGlowMaterialProperty({
+                glowPower: 0.2, taperPower: 1, color: Cesium.Color.YELLOW
+                }),
+                width: 10,
+                leadTime: 0,
+                trailTime: 120,
+            },
+            description: "Carrier plane taking off from Indonesia."
+            });
+
+            // Rocket entity with glowing path
+            const rocketPos = new Cesium.SampledPositionProperty();
+            data.rocket.forEach(r => {
+            rocketPos.addSample(Cesium.JulianDate.fromIso8601(r.time), Cesium.Cartesian3.fromDegrees(r.lon, r.lat, r.alt));
+            });
+            rocket = viewer.entities.add({
+            name: "Rocket",
+            position: rocketPos,
+            orientation: new Cesium.VelocityOrientationProperty(rocketPos),
+            model: { uri: "models/rocket.glb", scale: 10 },
+            path: {
+                resolution: 1,
+                material: new Cesium.PolylineGlowMaterialProperty({
+                glowPower: 0.2, taperPower: 1, color: Cesium.Color.ORANGE
+                }),
+                width: 10,
+                leadTime: 0,
+                trailTime: 120,
+            },
+            description: "Rocket released from the carrier plane."
+            });
+
+            // Payload entity with glowing orbit path
+            const payloadPos = new Cesium.SampledPositionProperty();
+            data.payload.track.forEach(p => {
+            payloadPos.addSample(Cesium.JulianDate.fromIso8601(p.time), Cesium.Cartesian3.fromDegrees(p.lon, p.lat, p.alt));
+            });
+            payload = viewer.entities.add({
+            name: "Payload",
+            position: payloadPos,
+            orientation: new Cesium.VelocityOrientationProperty(payloadPos),
+            model: { uri: "models/payload.glb", scale: 1 },
+            path: {
+                resolution: 1,
+                material: new Cesium.PolylineGlowMaterialProperty({
+                glowPower: 0.2, taperPower: 1, color: Cesium.Color.CYAN
+                }),
+                width: 10,
+                leadTime: 0,
+                trailTime: 60,
+            },
+            description: `Orbit: 500km circular, Inclination: ${data.payload.orbit.inclination}°`
+            });
+
+            // Camera auto-switching based on trajectory events
+            viewer.trackedEntity = plane;
+            let currentPhase = "plane";
+
+            // Get the actual start times from the data
+            const rocketSeparationTime = Cesium.JulianDate.fromIso8601(data.rocket[0].time);
+            const payloadOrbitTime = Cesium.JulianDate.fromIso8601(data.payload.track[0].time);
+
+            viewer.clock.onTick.addEventListener(clock => {
+            const now = clock.currentTime;
+
+            // Switch to rocket at its separation time
+            if (currentPhase === "plane" && Cesium.JulianDate.greaterThanOrEquals(now, rocketSeparationTime)) {
+                viewer.trackedEntity = rocket;
+                currentPhase = "rocket";
+                console.log("Camera switched to Rocket");
+            }
+
+            // Switch to payload at its orbit insertion time
+            if (currentPhase === "rocket" && Cesium.JulianDate.greaterThanOrEquals(now, payloadOrbitTime)) {
+                viewer.trackedEntity = payload;
+                currentPhase = "payload";
+                console.log("Camera switched to Payload");
+            }
+            });
+
+        })
+        .catch(error => console.error("Error loading trajectory:", error));
+        </script>
+    </body> 
+</html>
