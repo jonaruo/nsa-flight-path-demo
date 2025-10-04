@@ -1,0 +1,35 @@
+# ---- Environment / Secrets ----
+.env
+*.env
+apikeys.json
+secrets.json
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+ENV/
+.ipynb_checkpoints
+
+# ---- Node.js / Frontend ----
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dist/
+.next/
+out/
+build/
+
+# ---- Logs ----
+*.log
+
+# ---- OS / Editor ----
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
