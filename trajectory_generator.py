@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 
 #Starting Plane Variables
 STARTING_AIRPORT_COORDS = {"lat": -1.1900, "lon": 136.1080} #starting at Frans Kaisiepo Airport in Biak
-ROCKET_RELEASE_ALTITUDE = 10000 #written in meters, possible to make 3 optional altitudes depending on choosen air-launch platforms
+ROCKET_RELEASE_ALTITUDE = 7000 #written in meters
 FLIGHT_DURATION_MINUTES = 5
 RETURN_FLIGHT_DURATION_MINUTES = 5
 TURN_WIDTH = 0.2 # Determines the width of the turn in degrees latitude
